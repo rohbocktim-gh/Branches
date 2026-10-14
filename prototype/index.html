@@ -1,0 +1,753 @@
+<title>Branches Sketch</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Nunito:wght@400;600;700&display=swap">
+<style>
+/* Layout: one-screen puzzle over a sunny sky with drifting petals — header with sound, difficulty + puzzle number, generated branch board, draggable number bank.
+   Deliberately single-theme: a bright daytime look on every host. */
+:root {
+  color-scheme: light;
+  --sky-top: #bfe6fb;
+  --sky-low: #fff1c4;
+  --ink: #2b3a55;
+  --muted: #5d6c88;
+  --branch: #8cc97e;
+  --cell: #ffffff;
+  --given: #e3f5e2;
+  --used: #e9eef5;
+  --accent: #ff8a3d;
+  --sel: #ffe4cc;
+  --good: #2c9d64;
+  --bad: #e1484d;
+  --target-bg: rgba(255,255,255,.8);
+  --onaccent: #ffffff;
+  --used-ink: #b3bccb;
+  --display: "Fredoka", "Trebuchet MS", system-ui, sans-serif;
+  --body: "Nunito", system-ui, sans-serif;
+}
+/* Unlockable skins (rewards). Each redefines the palette tokens only. */
+:root[data-skin="sunset"] { --sky-top: #ffc3a0; --sky-low: #ffe7b3; --ink: #3a2e4f; --muted: #6f5d78; --branch: #f2a65a; --given: #ffe9d6; --accent: #e8576b; --sel: #ffd9dd; }
+:root[data-skin="blossom"] { --sky-top: #ffd6e7; --sky-low: #fff4f8; --ink: #4a2c42; --muted: #7d5a72; --branch: #e58fb5; --given: #fde4ef; --accent: #c94f8a; --sel: #f9d4e6; }
+:root[data-skin="autumn"] { --sky-top: #f4d9a8; --sky-low: #fbecd0; --ink: #3d2a1c; --muted: #6e5643; --branch: #c9883a; --given: #f6e3c3; --accent: #b5462e; --sel: #f3d2c4; }
+:root[data-skin="night"] { color-scheme: dark; --sky-top: #1d2550; --sky-low: #3b3570; --ink: #eef1ff; --muted: #b7bde0; --branch: #7fd1a8; --cell: #2a2f5c;
+  --given: #2f4a4a; --used: #343a66; --used-ink: #6d74a8; --accent: #ffb347; --sel: #4a3d5c; --good: #5fd39b; --bad: #ff7a7a; --target-bg: rgba(42,47,92,.85); --onaccent: #1d2550; }
+.stats { display: flex; gap: 8px; flex-wrap: wrap; }
+.stat { display: inline-flex; align-items: center; gap: 6px; font-family: var(--display); font-weight: 500; font-size: 0.92rem; padding: 5px 11px; border-radius: 999px; background: var(--target-bg); color: var(--ink); font-variant-numeric: tabular-nums; }
+.stat svg { width: 16px; height: 16px; flex: none; }
+.ico-petal { fill: #ff8fb1; }
+.ico-flame { fill: #ff8a3d; }
+.ico-sun { fill: #f5b700; }
+.hdr-right { display: flex; gap: 6px; }
+.earned { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 4px; align-items: center; font-family: var(--display); font-weight: 500; color: var(--ink); }
+.earned li { display: flex; gap: 6px; align-items: center; font-variant-numeric: tabular-nums; }
+.earned b { color: var(--accent); }
+.toast { position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); z-index: 30; max-width: calc(100% - 32px);
+  padding: 12px 18px; border-radius: 16px; background: var(--ink); color: var(--sky-low); font-family: var(--display); font-weight: 500; text-align: center; box-shadow: 0 8px 20px rgba(0,0,0,.2); }
+.panel-back { position: fixed; inset: 0; z-index: 20; background: rgba(20,26,40,.45); display: grid; place-items: center; padding-inline: 16px; }
+.panel { width: 100%; max-width: 420px; max-height: 85vh; overflow-y: auto; background: var(--sky-low); color: var(--ink); border-radius: 24px; padding: 20px; display: flex; flex-direction: column; gap: 16px; box-shadow: 0 16px 40px rgba(0,0,0,.25); }
+.panel h2 { margin: 0; font-family: var(--display); font-weight: 600; font-size: 1.5rem; }
+.panel h3 { margin: 0; font-family: var(--display); font-weight: 500; font-size: 1rem; color: var(--muted); }
+.panel-head { display: flex; justify-content: space-between; align-items: center; }
+.bigstats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+.bigstat { background: var(--cell); border-radius: 16px; padding: 10px 12px; display: flex; flex-direction: column; gap: 2px; }
+.bigstat .n { font-family: var(--display); font-weight: 600; font-size: 1.6rem; font-variant-numeric: tabular-nums; }
+.bigstat .l { font-size: 0.82rem; color: var(--muted); }
+.milestones { display: flex; flex-direction: column; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.ms { display: grid; grid-template-columns: 54px 1fr auto; gap: 10px; align-items: center; background: var(--cell); border-radius: 14px; padding: 8px 12px; }
+.ms .day { font-family: var(--display); font-weight: 600; font-variant-numeric: tabular-nums; }
+.ms .what { min-width: 0; font-size: 0.9rem; }
+.ms .what small { display: block; color: var(--muted); }
+.ms .state { font-family: var(--display); font-size: 0.85rem; color: var(--muted); }
+.ms.done .state { color: var(--good); }
+.ms.done { border: 2px solid var(--good); }
+.bar { height: 6px; border-radius: 99px; background: var(--used); overflow: hidden; margin-top: 4px; }
+.bar i { display: block; height: 100%; background: var(--accent); }
+.skins { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 8px; }
+.skin { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; padding: 8px; border-radius: 14px; border: 2px solid transparent; background: var(--cell); color: var(--ink); font-family: var(--display); font-weight: 500; cursor: pointer; text-align: left; }
+.skin[aria-pressed="true"] { border-color: var(--accent); }
+.skin:disabled { cursor: default; opacity: .55; }
+.skin .sw { width: 100%; height: 34px; border-radius: 9px; }
+.skin small { font-family: var(--body); color: var(--muted); font-size: 0.78rem; }
+.hdr-right { flex-wrap: wrap; justify-content: flex-end; }
+.tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+.lb { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 6px; }
+.lb li { display: grid; grid-template-columns: 34px 1fr auto; gap: 10px; align-items: center; background: var(--cell); border-radius: 14px; padding: 9px 12px; }
+.lb li.me { border: 2px solid var(--accent); }
+.lb .rank { font-family: var(--display); font-weight: 600; font-size: 1.1rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+.lb li:nth-child(1) .rank { color: #e0a800; }
+.lb li:nth-child(2) .rank { color: #8a99ad; }
+.lb li:nth-child(3) .rank { color: #c27a3a; }
+.lb .who { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 700; }
+.lb .who small { font-weight: 400; color: var(--muted); }
+.lb .score { font-family: var(--display); font-weight: 600; font-size: 1.1rem; font-variant-numeric: tabular-nums; }
+.lb-note { margin: 0; font-size: 0.88rem; line-height: 1.45; color: var(--muted); }
+html, body { height: 100%; }
+body { background: linear-gradient(180deg, var(--sky-top) 0%, var(--sky-low) 75%) fixed, var(--sky-low); color: var(--ink); font-family: var(--body); }
+#sky { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 0; }
+.wrap { position: relative; z-index: 1; max-width: 440px; margin: 0 auto; padding-inline: 16px; padding-block: 18px 28px; display: flex; flex-direction: column; gap: 14px; }
+header { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+h1 { font-family: var(--display); font-weight: 600; font-size: 2rem; margin: 0; color: var(--ink); }
+h1 span { color: var(--accent); }
+.chip { font-family: var(--display); font-weight: 500; font-size: 0.9rem; padding: 6px 12px; border-radius: 999px; border: 2px solid var(--branch); background: var(--cell); color: var(--ink); cursor: pointer; }
+.chip[aria-pressed="true"] { background: var(--branch); color: var(--onaccent); }
+.levelbar { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+.diffs { display: flex; gap: 6px; }
+.diffs .chip { padding: 5px 11px; }
+.puzzle-no { font-family: var(--display); font-weight: 500; color: var(--muted); font-variant-numeric: tabular-nums; }
+.rules { margin: 0; font-size: 0.95rem; line-height: 1.5; color: var(--muted); }
+.rules b { color: var(--ink); }
+.board { position: relative; width: 100%; aspect-ratio: 1; max-width: 100%; container-type: inline-size; }
+.board svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.board svg line { stroke: var(--branch); stroke-width: 0.11; stroke-linecap: round; transition: stroke .2s; }
+.board svg line.hot { stroke: var(--accent); }
+.board svg line.ok { stroke: var(--good); }
+.board svg text { fill: var(--ink); font-family: var(--display); font-size: 0.32px; font-weight: 600; text-anchor: middle; dominant-baseline: central; }
+.board svg text.hot { fill: var(--accent); }
+.board svg .opbg { fill: var(--cell); stroke: var(--branch); stroke-width: 0.04; }
+.cell, .target { position: absolute; transform: translate(-50%, -50%); display: grid; place-items: center; font-family: var(--display); font-weight: 600; }
+.cell { width: var(--cwp); aspect-ratio: 1; border-radius: 30%; border: 3px solid var(--branch); background: var(--cell); color: var(--ink);
+  font-size: calc(var(--cw) * 0.5); cursor: pointer; padding: 0; touch-action: none; box-shadow: 0 3px 0 rgba(43,58,85,.12); transition: background .15s, border-color .15s, transform .15s; }
+.cell.given { background: var(--given); cursor: default; }
+.cell.given::after { content: ""; position: absolute; top: 3px; right: 4px; width: 6px; height: 6px; border-radius: 50%; background: var(--good); }
+.cell.sel { border-color: var(--accent); background: var(--sel); }
+.cell.over { transform: translate(-50%, -50%) scale(1.15); border-color: var(--accent); }
+.cell:focus-visible, .tile:focus-visible, .actions button:focus-visible, .chip:focus-visible, .next:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.target { min-width: var(--cwp); padding: 2px 6px; border-radius: 999px; font-size: calc(var(--cw) * 0.38); color: var(--ink); background: var(--target-bg); border: 2px dashed var(--branch); font-variant-numeric: tabular-nums; }
+.target.ok { border: 2px solid var(--good); background: var(--good); color: var(--onaccent); }
+.target.no { border: 2px solid var(--bad); color: var(--bad); }
+.target.hot { border-color: var(--accent); }
+.target.pop { animation: pop .5s ease-out; }
+@keyframes pop { 0% { transform: translate(-50%,-50%) scale(1); } 40% { transform: translate(-50%,-50%) scale(1.35); } 100% { transform: translate(-50%,-50%) scale(1); } }
+.spark { position: absolute; width: 8px; height: 8px; border-radius: 50%; pointer-events: none; animation: spark .7s ease-out forwards; }
+@keyframes spark { from { transform: translate(-50%,-50%); opacity: 1; } to { transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))); opacity: 0; } }
+.bank-row { display: flex; justify-content: space-between; align-items: baseline; }
+.bank-label { margin: 0; font-family: var(--display); font-weight: 500; font-size: 0.85rem; color: var(--muted); }
+.status { font-family: var(--display); font-weight: 500; font-size: 0.95rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+.bank { display: grid; grid-template-columns: repeat(auto-fill, minmax(44px, 1fr)); gap: 8px; }
+.tile { font-family: var(--display); font-weight: 600; font-size: 1.35rem; padding-block: 9px; border-radius: 14px; border: 3px solid var(--accent); background: var(--cell); color: var(--ink); cursor: grab; touch-action: none; box-shadow: 0 3px 0 rgba(255,138,61,.35); font-variant-numeric: tabular-nums; }
+.tile.used { border-color: var(--used); background: var(--used); color: var(--used-ink); box-shadow: none; cursor: default; }
+.ghost { position: fixed; z-index: 10; width: 52px; height: 52px; display: grid; place-items: center; border-radius: 16px; background: var(--accent); color: var(--onaccent);
+  font-family: var(--display); font-weight: 600; font-size: 1.5rem; pointer-events: none; transform: translate(-50%, -60%) rotate(-6deg); box-shadow: 0 8px 18px rgba(43,58,85,.25); }
+.actions { display: flex; gap: 8px; }
+.actions button { flex: 1; font-family: var(--display); font-size: 1rem; font-weight: 500; padding-block: 12px; border-radius: 14px; border: 2px solid var(--branch); background: var(--cell); color: var(--ink); cursor: pointer; }
+.actions #hint { background: var(--accent); border-color: var(--accent); color: var(--onaccent); }
+.winbox { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+.win { margin: 0; text-align: center; font-family: var(--display); font-weight: 600; font-size: 1.4rem; color: var(--good); }
+.next { font-family: var(--display); font-weight: 600; font-size: 1.1rem; padding: 12px 28px; border-radius: 999px; border: none; background: var(--good); color: var(--onaccent); cursor: pointer; box-shadow: 0 4px 0 rgba(44,157,100,.35); }
+@media (prefers-reduced-motion: reduce) { .cell, .board svg line { transition: none; } .target.pop, .spark { animation: none; } }
+</style>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-petal" viewBox="0 0 16 16"><path d="M8 1c3 2 5 5 5 8a5 5 0 0 1-10 0c0-3 2-6 5-8z"/></symbol>
+  <symbol id="i-flame" viewBox="0 0 16 16"><path d="M8 1c1 3 5 4.5 5 8.5A5 5 0 0 1 3 9.5c0-2 1-3 2-4 0 1.5.8 2.5 1.8 2.8C6.3 6 7 3.5 8 1z"/></symbol>
+  <symbol id="i-sun" viewBox="0 0 16 16"><circle cx="8" cy="8" r="3.4"/><path d="M8 .8v2.4M8 12.8v2.4M.8 8h2.4M12.8 8h2.4M2.9 2.9l1.7 1.7M11.4 11.4l1.7 1.7M2.9 13.1l1.7-1.7M11.4 4.6l1.7-1.7" stroke="#f5b700" stroke-width="1.6" stroke-linecap="round"/></symbol>
+</svg>
+<canvas id="sky" aria-hidden="true"></canvas>
+<div class="wrap">
+  <header>
+    <h1>Branch<span>es</span></h1>
+    <div class="hdr-right">
+      <button class="chip" id="rewardsBtn" type="button">Rewards</button>
+      <button class="chip" id="leadersBtn" type="button">Leaders</button>
+      <button class="chip" id="music" type="button" aria-pressed="false" aria-label="Music">♪</button>
+    </div>
+  </header>
+  <div class="stats">
+    <span class="stat" title="Days played"><svg class="ico-sun"><use href="#i-sun"/></svg><span id="sDays">0 days</span></span>
+    <span class="stat" title="Current streak"><svg class="ico-flame"><use href="#i-flame"/></svg><span id="sStreak">0 streak</span></span>
+    <span class="stat" title="Petals"><svg class="ico-petal"><use href="#i-petal"/></svg><span id="sPetals">0</span></span>
+  </div>
+  <div class="levelbar">
+    <div class="diffs" role="group" aria-label="Difficulty">
+      <button class="chip" type="button" data-diff="easy" id="d-easy">Easy</button>
+      <button class="chip" type="button" data-diff="medium" id="d-medium">Medium</button>
+      <button class="chip" type="button" data-diff="hard" id="d-hard">Hard</button>
+    </div>
+    <span class="puzzle-no" id="puzzleNo">Puzzle 1</span>
+  </div>
+  <p class="rules">Drag numbers onto the branches, or tap a cell and then a number. Each branch reads <b>toward its total</b>, worked left to right. Green-dot cells are filled for you.</p>
+  <div class="board" id="board"><svg id="lines" aria-hidden="true"></svg></div>
+  <div class="winbox" id="winbox" hidden>
+    <p class="win" id="win">Solved! Every branch adds up.</p>
+    <ul class="earned" id="earned"></ul>
+    <button class="next" id="next" type="button">Next puzzle →</button>
+  </div>
+  <div class="bank-row">
+    <p class="bank-label">Number bank</p>
+    <span class="status" id="status">0 / 0 branches</span>
+  </div>
+  <div class="bank" id="bank"></div>
+  <div class="actions">
+    <button id="hint" type="button">Hint (free)</button>
+    <button id="erase" type="button">Return</button>
+    <button id="reset" type="button">Start over</button>
+  </div>
+</div>
+
+<div class="panel-back" id="panelBack" hidden>
+  <div class="panel" role="dialog" aria-modal="true" aria-labelledby="panelTitle">
+    <div class="panel-head"><h2 id="panelTitle">Rewards</h2><button class="chip" id="panelClose" type="button">Close</button></div>
+    <div class="bigstats" id="bigstats"></div>
+    <h3>Days-played milestones</h3>
+    <ul class="milestones" id="milestones"></ul>
+    <h3>Garden skins</h3>
+    <div class="skins" id="skins"></div>
+  </div>
+</div>
+<div class="panel-back" id="lbBack" hidden>
+  <div class="panel" role="dialog" aria-modal="true" aria-labelledby="lbTitle">
+    <div class="panel-head"><h2 id="lbTitle">Leaderboard</h2><button class="chip" id="lbClose" type="button">Close</button></div>
+    <div class="tabs" role="group" aria-label="Rank by">
+      <button class="chip" type="button" data-sort="petals" id="lb-petals">Petals</button>
+      <button class="chip" type="button" data-sort="days" id="lb-days">Days played</button>
+      <button class="chip" type="button" data-sort="best" id="lb-best">Best streak</button>
+      <button class="chip" type="button" data-sort="solved" id="lb-solved">Solved</button>
+    </div>
+    <ol class="lb" id="lbList"></ol>
+    <p class="lb-note" id="lbNote"></p>
+  </div>
+</div>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+// GEN START
+function mulberry32(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+const DIRS = [[1,0],[0,1],[1,1],[1,-1],[-1,0],[0,-1],[-1,-1],[-1,1]];
+const CFG = { easy: { branches: 5, extra: 2 }, medium: { branches: 7, extra: 1 }, hard: { branches: 9, extra: 0 } };
+const LIM = 3;
+function evalOps(vals, ops) { let r = vals[0]; ops.forEach((op, i) => { const v = vals[i + 1]; r = op === '+' ? r + v : op === '−' ? r - v : r * v; }); return r; }
+
+function solve(n, br, given, truth, limit, nodeLimit) {
+  const order = [], seen = new Set();
+  br.forEach(b => b.ids.forEach(i => { if (!(i in given) && !seen.has(i)) { seen.add(i); order.push(i); } }));
+  const idx = new Array(n).fill(-1); order.forEach((c, t) => idx[c] = t);
+  const checks = order.map(() => []);
+  br.forEach(b => { const last = Math.max(...b.ids.map(i => idx[i])); if (last >= 0) checks[last].push(b); });
+  const cnt = {}; order.forEach(c => cnt[truth[c]] = (cnt[truth[c]] || 0) + 1);
+  const keys = Object.keys(cnt).map(Number).sort((a, b) => a - b);
+  const vals = new Array(n); for (const k in given) vals[k] = given[k];
+  let count = 0, nodes = 0, aborted = false; const sols = [];
+  (function rec(t) {
+    if (t === order.length) { count++; sols.push(vals.slice()); return; }
+    for (const v of keys) {
+      if (!cnt[v]) continue;
+      if (++nodes > nodeLimit) { aborted = true; return; }
+      cnt[v]--; vals[order[t]] = v;
+      let good = true;
+      for (const b of checks[t]) if (evalOps(b.ids.map(i => vals[i]), b.ops) !== b.total) { good = false; break; }
+      if (good) rec(t + 1);
+      cnt[v]++;
+      if (aborted || count >= limit) return;
+    }
+  })(0);
+  return { count, sols, aborted };
+}
+
+function generate(diff, seed) {
+  const rnd = mulberry32(seed * 7919 + 13), ri = n => Math.floor(rnd() * n);
+  const cfg = CFG[diff];
+  for (let attempt = 0; attempt < 400; attempt++) {
+    const pos = [], at = new Map(), occ = new Map(), br = [];
+    const key = (x, y) => x + ',' + y; // doubled coordinates
+    const tryBranch = (jx, jy, d, L, k, first) => {
+      const cp = []; for (let i = 0; i < L; i++) cp.push([jx + (i - k) * d[0], jy + (i - k) * d[1]]);
+      const tgt = [jx + (L - k) * d[0], jy + (L - k) * d[1]], pts = cp.concat([tgt]);
+      for (const [x, y] of pts) if (Math.abs(x) > LIM || Math.abs(y) > LIM) return false;
+      for (const [x, y] of cp) { const o = occ.get(key(2 * x, 2 * y)); if (o && o !== 'c') return false; }
+      if (occ.has(key(2 * tgt[0], 2 * tgt[1]))) return false;
+      for (let i = 0; i < L; i++) if (occ.has(key(pts[i][0] + pts[i + 1][0], pts[i][1] + pts[i + 1][1]))) return false;
+      const existing = cp.filter(([x, y]) => occ.get(key(2 * x, 2 * y)) === 'c').length;
+      if ((!first && existing < 1) || existing === L || existing > 2) return false;
+      const ids = cp.map(([x, y]) => { const kk = key(2 * x, 2 * y); if (!at.has(kk)) { at.set(kk, pos.length); pos.push([x, y]); occ.set(kk, 'c'); } return at.get(kk); });
+      for (let i = 0; i < L; i++) occ.set(key(pts[i][0] + pts[i + 1][0], pts[i][1] + pts[i + 1][1]), 'o');
+      occ.set(key(2 * tgt[0], 2 * tgt[1]), 't');
+      br.push({ ids, end: tgt });
+      return true;
+    };
+    tryBranch(0, 0, DIRS[ri(8)], 2 + ri(2), 0, true);
+    for (let tries = 0; br.length < cfg.branches && tries < 400; tries++) {
+      const j = pos[ri(pos.length)], L = 2 + ri(2);
+      tryBranch(j[0], j[1], DIRS[ri(8)], L, ri(L), false);
+    }
+    if (br.length < cfg.branches) continue;
+    const truth = pos.map(() => 1 + ri(9));
+    let ok = true;
+    for (const b of br) {
+      let done = false;
+      for (let t = 0; t < 30 && !done; t++) {
+        const ops = b.ids.slice(1).map(() => { const q = rnd(); return q < 0.45 ? '+' : q < 0.75 ? '−' : '×'; });
+        const tot = evalOps(b.ids.map(i => truth[i]), ops);
+        if (tot >= 1 && tot <= 72) { b.ops = ops; b.total = tot; done = true; }
+      }
+      if (!done) { ok = false; break; }
+    }
+    if (!ok) continue;
+    const given = {};
+    let unique = false;
+    for (let g = 0; g < pos.length; g++) {
+      const res = solve(pos.length, br, given, truth, 2, 150000);
+      if (res.aborted) break;
+      if (res.count === 1) { unique = true; break; }
+      const alt = res.sols.find(s => s.some((v, i) => v !== truth[i]));
+      const diffs = truth.map((v, i) => i).filter(i => alt[i] !== truth[i] && !(i in given));
+      const pick = diffs[ri(diffs.length)];
+      given[pick] = truth[pick];
+    }
+    if (!unique) continue;
+    const free = pos.map((_, i) => i).filter(i => !(i in given));
+    for (let e = 0; e < cfg.extra && free.length > 4; e++) { const c = free.splice(ri(free.length), 1)[0]; given[c] = truth[c]; }
+    if (free.length < 4) continue;
+    return { pos, branches: br, truth, given };
+  }
+  return null;
+}
+// GEN END
+
+
+// ---------- Progress ----------
+let progress = { diff: 'easy', level: { easy: 1, medium: 1, hard: 1 } };
+try { const s = JSON.parse(localStorage.getItem('branches-progress')); if (s && s.level) progress = s; } catch (e) {}
+const saveProgress = () => { try { localStorage.setItem('branches-progress', JSON.stringify(progress)); } catch (e) {} };
+const DIFF_SEED = { easy: 1000, medium: 2000, hard: 3000 };
+
+// ---------- Days played, streaks and rewards ----------
+const SKINS = {
+  meadow:  { name: 'Meadow',         sw: 'linear-gradient(#bfe6fb,#fff1c4)', petals: ['#ffb3c7', '#ffd23f', '#b8e6a8', '#ffffff', '#ffc89a'] },
+  sunset:  { name: 'Sunset',         sw: 'linear-gradient(#ffc3a0,#ffe7b3)', petals: ['#ff9a8b', '#ffcf71', '#ffb3c7', '#ffffff', '#f7a072'] },
+  night:   { name: 'Night Garden',   sw: 'linear-gradient(#1d2550,#3b3570)', petals: ['#fff6a8', '#b7f0ff', '#ffffff', '#d6c6ff', '#9fe7c4'] },
+  blossom: { name: 'Cherry Blossom', sw: 'linear-gradient(#ffd6e7,#fff4f8)', petals: ['#ffb7d0', '#ffd1e3', '#ffffff', '#f79cc0', '#ffe3ee'] },
+  autumn:  { name: 'Autumn Grove',   sw: 'linear-gradient(#f4d9a8,#fbecd0)', petals: ['#e07a3f', '#c9883a', '#f2b544', '#b5462e', '#e8a65c'] },
+};
+const MILESTONES = [
+  { days: 1,  petals: 0,   skin: 'meadow',  label: 'First day' },
+  { days: 3,  petals: 50,  skin: 'sunset',  label: '3 days played' },
+  { days: 7,  petals: 100, skin: 'night',   label: 'One week' },
+  { days: 14, petals: 200, skin: 'blossom', label: 'Two weeks' },
+  { days: 30, petals: 400, skin: 'autumn',  label: 'One month' },
+];
+const SOLVE_REWARD = { easy: 10, medium: 20, hard: 35 };
+const HINT_COST = 15;
+let stats = { days: 0, streak: 0, best: 0, lastDay: null, bonusDay: null, petals: 40, solved: 0, skin: 'meadow', unlocked: ['meadow'], done: { easy: 0, medium: 0, hard: 0 } };
+try { const s = JSON.parse(localStorage.getItem('branches-stats')); if (s && typeof s.days === 'number') stats = Object.assign(stats, s); } catch (e) {}
+const saveStats = () => { try { localStorage.setItem('branches-stats', JSON.stringify(stats)); } catch (e) {} };
+const dayKey = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+const today = () => dayKey(new Date());
+const daysBetween = (a, b) => Math.round((new Date(b + 'T12:00:00') - new Date(a + 'T12:00:00')) / 86400000);
+
+let toastTimer = null;
+function toast(msg) {
+  const t = document.getElementById('toast'); t.textContent = msg; t.hidden = false;
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => t.hidden = true, 3200);
+}
+
+// A day counts once you place your first number that day.
+function recordPlay() {
+  const d = today();
+  if (stats.lastDay === d) return;
+  stats.streak = stats.lastDay && daysBetween(stats.lastDay, d) === 1 ? stats.streak + 1 : 1;
+  stats.days++; stats.lastDay = d; stats.best = Math.max(stats.best, stats.streak);
+  const msgs = [];
+  MILESTONES.forEach(m => {
+    if (stats.days >= m.days && !stats.unlocked.includes(m.skin)) {
+      stats.unlocked.push(m.skin); stats.petals += m.petals;
+      msgs.push(m.label + '! ' + SKINS[m.skin].name + ' skin unlocked' + (m.petals ? ' + ' + m.petals + ' petals' : ''));
+    }
+  });
+  saveStats(); renderStats(); pushScore();
+  if (msgs.length) { toast(msgs.join(' · ')); sfx('win'); }
+  else if (stats.days > 1) toast('Day ' + stats.days + ' played' + (stats.streak > 1 ? ' · ' + stats.streak + '-day streak' : ''));
+}
+
+// Rewards for a solve: base by difficulty, less for hints, plus a once-a-day bonus that grows with the streak.
+function awardSolve() {
+  const d = progress.diff, n = progress.level[d], lines = [];
+  if (stats.done[d] >= n) { document.getElementById('earned').innerHTML = '<li>Already rewarded for this puzzle</li>'; return; }
+  stats.done[d] = n; stats.solved++;
+  const base = Math.max(5, SOLVE_REWARD[d] - 3 * Math.max(0, hintsUsed - 1));
+  let total = base;
+  lines.push(['Puzzle solved', base]);
+  if (hintsUsed === 0) { total += 5; lines.push(['No hints', 5]); }
+  if (stats.bonusDay !== today()) {
+    const bonus = 10 * Math.min(stats.streak, 7);
+    stats.bonusDay = today(); total += bonus;
+    lines.push(['Daily bonus (' + stats.streak + '-day streak)', bonus]);
+  }
+  stats.petals += total; saveStats(); renderStats(); pushScore();
+  const ic = '<svg class="ico-petal" width="14" height="14"><use href="#i-petal"/></svg>';
+  document.getElementById('earned').innerHTML = lines.map(([l, v]) => `<li>${l} <b>+${v}</b>${ic}</li>`).join('');
+}
+
+function renderStats() {
+  document.getElementById('sDays').textContent = stats.days + (stats.days === 1 ? ' day' : ' days');
+  document.getElementById('sStreak').textContent = stats.streak + ' streak';
+  document.getElementById('sPetals').textContent = stats.petals;
+  document.documentElement.dataset.skin = stats.skin;
+  petalColors = SKINS[stats.skin].petals;
+  petals.forEach(p => p.c = petalColors[Math.floor(Math.random() * petalColors.length)]);
+}
+
+function renderPanel() {
+  document.getElementById('bigstats').innerHTML = [
+    [stats.days, 'Days played'], [stats.streak, 'Current streak'], [stats.best, 'Best streak'], [stats.petals, 'Petals'], [stats.solved, 'Puzzles solved'],
+    [Math.min(stats.streak, 7) * 10, 'Today\'s daily bonus'],
+  ].map(([n, l]) => `<div class="bigstat"><span class="n">${n}</span><span class="l">${l}</span></div>`).join('');
+  document.getElementById('milestones').innerHTML = MILESTONES.map(m => {
+    const done = stats.days >= m.days, pctDone = Math.min(100, stats.days / m.days * 100);
+    return `<li class="ms${done ? ' done' : ''}"><span class="day">Day ${m.days}</span>
+      <span class="what">${SKINS[m.skin].name} skin${m.petals ? ' + ' + m.petals + ' petals' : ''}<small>${m.label}</small>${done ? '' : `<span class="bar"><i style="width:${pctDone}%"></i></span>`}</span>
+      <span class="state">${done ? 'Earned' : stats.days + ' / ' + m.days}</span></li>`;
+  }).join('');
+  const sk = document.getElementById('skins'); sk.innerHTML = '';
+  Object.entries(SKINS).forEach(([k, s]) => {
+    const open = stats.unlocked.includes(k), m = MILESTONES.find(x => x.skin === k);
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'skin'; b.id = 'skin-' + k;
+    b.disabled = !open; b.setAttribute('aria-pressed', stats.skin === k ? 'true' : 'false');
+    b.innerHTML = `<span class="sw" style="background:${s.sw}"></span>${s.name}<small>${open ? (stats.skin === k ? 'In use' : 'Tap to use') : 'Unlocks on day ' + m.days}</small>`;
+    b.addEventListener('click', () => { stats.skin = k; saveStats(); renderStats(); renderPanel(); });
+    sk.appendChild(b);
+  });
+}
+document.getElementById('rewardsBtn').addEventListener('click', () => { renderPanel(); document.getElementById('panelBack').hidden = false; });
+document.getElementById('panelClose').addEventListener('click', () => document.getElementById('panelBack').hidden = true);
+document.getElementById('panelBack').addEventListener('click', e => { if (e.target.id === 'panelBack') e.currentTarget.hidden = true; });
+
+// ---------- Leaderboard (shared across everyone who opens the page) ----------
+const LB_LABEL = { petals: 'petals', days: 'days', best: 'day streak', solved: 'solved' };
+let lb = { db: null, user: null, myId: null, canWrite: null, rows: [], sort: 'petals', writing: false, dirty: false, ready: false };
+(async () => {
+  try {
+    const [db, user] = await Promise.all([claude.use('db'), claude.use('user')]);
+    if (!db) { lb.ready = true; renderLeaderboard(); return; }
+    lb.db = db; lb.user = user;
+    lb.myId = user ? await user.id() : null;
+    lb.canWrite = user ? await user.can('data.write') : null;
+    db.collection('board').orderBy('petals', 'desc').limit(200).onSnapshot(snap => {
+      lb.rows = snap.docs.map(d => Object.assign({ id: d.id }, d.data()));
+      lb.ready = true; renderLeaderboard();
+    }, () => { lb.ready = true; renderLeaderboard(); });
+    pushScore();
+  } catch (e) { lb.ready = true; renderLeaderboard(); }
+})();
+
+// Write this player's own row; one write at a time, coalescing bursts.
+async function pushScore() {
+  if (!lb.db || !lb.myId || lb.canWrite === false || stats.days === 0) return;
+  if (lb.writing) { lb.dirty = true; return; }
+  lb.writing = true;
+  try {
+    await lb.db.doc('board/' + lb.myId).set({ petals: stats.petals, days: stats.days, best: stats.best, streak: stats.streak, solved: stats.solved, updatedAt: new Date().toISOString() });
+  } catch (e) { if (e && e.code === 'invalid_argument') lb.canWrite = false; }
+  lb.writing = false;
+  if (lb.dirty) { lb.dirty = false; pushScore(); }
+}
+
+async function renderLeaderboard() {
+  const list = document.getElementById('lbList'), note = document.getElementById('lbNote');
+  document.querySelectorAll('.tabs .chip').forEach(c => c.setAttribute('aria-pressed', c.dataset.sort === lb.sort ? 'true' : 'false'));
+  if (!lb.ready) { list.innerHTML = ''; note.textContent = 'Loading the leaderboard…'; return; }
+  if (!lb.db) { list.innerHTML = ''; note.textContent = 'The leaderboard is not available in this view. Open the page signed in to claude.ai to see it.'; return; }
+  const rows = lb.rows.filter(r => typeof r[lb.sort] === 'number').sort((a, b) => b[lb.sort] - a[lb.sort] || b.petals - a.petals).slice(0, 50);
+  const ps = lb.user ? await lb.user.profiles(rows.map(r => r.id)) : {};
+  list.innerHTML = '';
+  rows.forEach((r, k) => {
+    const li = document.createElement('li'); if (r.id === lb.myId) li.className = 'me';
+    const rank = document.createElement('span'); rank.className = 'rank'; rank.textContent = k + 1;
+    const who = document.createElement('span'); who.className = 'who';
+    who.textContent = (ps[r.id] && ps[r.id].name) || 'Player';
+    if (r.id === lb.myId) { const s = document.createElement('small'); s.textContent = ' (you)'; who.appendChild(s); }
+    const score = document.createElement('span'); score.className = 'score'; score.textContent = r[lb.sort] + ' ' + LB_LABEL[lb.sort];
+    li.append(rank, who, score); list.appendChild(li);
+  });
+  if (!rows.length) note.textContent = 'Nobody is on the board yet. Solve a puzzle to claim first place.';
+  else if (lb.canWrite === false) note.textContent = 'You can see the board, but your scores are not posted: the page owner needs to give you Contributor access.';
+  else if (stats.days === 0) note.textContent = 'Place your first number to join the board.';
+  else note.textContent = 'Scores update every time you solve a puzzle.';
+}
+document.getElementById('leadersBtn').addEventListener('click', () => { document.getElementById('lbBack').hidden = false; renderLeaderboard(); });
+document.getElementById('lbClose').addEventListener('click', () => document.getElementById('lbBack').hidden = true);
+document.getElementById('lbBack').addEventListener('click', e => { if (e.target.id === 'lbBack') e.currentTarget.hidden = true; });
+document.querySelectorAll('.tabs .chip').forEach(c => c.addEventListener('click', () => { lb.sort = c.dataset.sort; renderLeaderboard(); }));
+
+// ---------- Game state ----------
+const NS = 'http://www.w3.org/2000/svg';
+const board = document.getElementById('board'), svg = document.getElementById('lines'), bank = document.getElementById('bank');
+let P = null, bankNums = [], order = [], given = {};
+let lineEls = [], opEls = [], targetEls = [], cellEls = [], tileEls = [];
+let placed = {}, locked = {}, sel = null, wasSolved = [], won = false, hintsUsed = 0;
+
+function loadPuzzle() {
+  const d = progress.diff, n = progress.level[d];
+  let seed = DIFF_SEED[d] + n;
+  P = generate(d, seed);
+  while (!P) P = generate(d, ++seed);
+  given = P.given;
+  order = P.pos.map((_, i) => i).filter(i => !(i in given));
+  bankNums = order.map(i => P.truth[i]).sort((a, b) => a - b);
+  placed = {}; locked = {}; wasSolved = []; won = false; hintsUsed = 0; updateHintLabel();
+  document.getElementById('puzzleNo').textContent = 'Puzzle ' + n;
+  document.querySelectorAll('.diffs .chip').forEach(c => c.setAttribute('aria-pressed', c.dataset.diff === d ? 'true' : 'false'));
+  build();
+  sel = order[0];
+  render();
+}
+
+function build() {
+  board.querySelectorAll('.cell, .target, .spark').forEach(el => el.remove());
+  svg.innerHTML = ''; bank.innerHTML = '';
+  lineEls = []; opEls = []; targetEls = []; cellEls = []; tileEls = [];
+  const pts = P.pos.concat(P.branches.map(b => b.end));
+  const xs = pts.map(p => p[0]), ys = pts.map(p => p[1]);
+  const minX = Math.min(...xs), maxX = Math.max(...xs), minY = Math.min(...ys), maxY = Math.max(...ys);
+  const S = Math.max(maxX - minX, maxY - minY) + 1.4;
+  const ox = (S - (maxX - minX)) / 2 - minX, oy = (S - (maxY - minY)) / 2 - minY;
+  const vx = x => x + ox, vy = y => y + oy, pct = v => (v / S * 100) + '%';
+  svg.setAttribute('viewBox', `0 0 ${S} ${S}`);
+  const cwp = Math.min(80 / S, 17);
+  board.style.setProperty('--cwp', cwp + '%');
+  board.style.setProperty('--cw', cwp + 'cqw');
+
+  P.branches.forEach((b, bi) => {
+    const bp = b.ids.map(id => P.pos[id]).concat([b.end]);
+    const ln = document.createElementNS(NS, 'line');
+    ln.setAttribute('x1', vx(bp[0][0])); ln.setAttribute('y1', vy(bp[0][1]));
+    ln.setAttribute('x2', vx(b.end[0])); ln.setAttribute('y2', vy(b.end[1]));
+    svg.appendChild(ln); lineEls[bi] = ln; opEls[bi] = [];
+    b.ops.concat(['=']).forEach((sym, i) => {
+      const mx = vx((bp[i][0] + bp[i+1][0]) / 2), my = vy((bp[i][1] + bp[i+1][1]) / 2);
+      const bg = document.createElementNS(NS, 'circle');
+      bg.setAttribute('cx', mx); bg.setAttribute('cy', my); bg.setAttribute('r', 0.2); bg.setAttribute('class', 'opbg');
+      const t = document.createElementNS(NS, 'text');
+      t.setAttribute('x', mx); t.setAttribute('y', my); t.textContent = sym;
+      svg.appendChild(bg); svg.appendChild(t); opEls[bi].push(t);
+    });
+    const tg = document.createElement('div');
+    tg.className = 'target'; tg.textContent = b.total;
+    tg.style.left = pct(vx(b.end[0])); tg.style.top = pct(vy(b.end[1]));
+    board.appendChild(tg); targetEls[bi] = tg;
+  });
+
+  P.pos.forEach(([x, y], id) => {
+    const c = document.createElement('button');
+    c.type = 'button'; c.id = 'cell-' + id; c.dataset.cell = id; c.className = 'cell';
+    c.style.left = pct(vx(x)); c.style.top = pct(vy(y));
+    c.addEventListener('pointerdown', e => pressStart(e, { type: 'cell', id }));
+    c.addEventListener('click', e => { if (e.detail === 0) tapCell(id); });
+    board.appendChild(c); cellEls[id] = c;
+  });
+
+  bankNums.forEach((n, i) => {
+    const t = document.createElement('button');
+    t.type = 'button'; t.className = 'tile'; t.id = 'tile-' + i; t.textContent = n;
+    t.addEventListener('pointerdown', e => pressStart(e, { type: 'tile', i }));
+    t.addEventListener('click', e => { if (e.detail === 0) tapTile(i); });
+    bank.appendChild(t); tileEls[i] = t;
+  });
+}
+
+// ---------- State helpers ----------
+const isFixed = id => (id in given) || !!locked[id];
+const inUse = i => Object.values(placed).includes(i);
+const value = id => id in given ? given[id] : (placed[id] != null ? bankNums[placed[id]] : null);
+const nextEmpty = from => { const s = from != null ? order.indexOf(from) + 1 : 0; return order.slice(s).concat(order).find(id => placed[id] == null && !locked[id]) ?? null; };
+
+function tapCell(id) { if (isFixed(id)) return; sel = id; render(); }
+function tapTile(i) {
+  if (inUse(i)) return;
+  if (sel == null || isFixed(sel)) sel = nextEmpty();
+  if (sel == null) return;
+  dropTile(i, sel);
+}
+function dropTile(i, id) { if (isFixed(id)) return; recordPlay(); placed[id] = i; sfx('place'); sel = nextEmpty(id); render(); }
+function moveCell(from, to) {
+  if (from === to || isFixed(to)) return;
+  const a = placed[from], b = placed[to];
+  placed[to] = a; if (b != null) placed[from] = b; else delete placed[from];
+  sfx('place'); sel = to; render();
+}
+function returnCell(id) { if (placed[id] != null && !locked[id]) { delete placed[id]; sfx('back'); sel = id; render(); } }
+
+function hint() {
+  const known = id => isFixed(id);
+  const cands = order.filter(id => !locked[id] && value(id) !== P.truth[id]);
+  if (!cands.length) return;
+  // Reveal the cell on the branch that is already closest to being worked out
+  let best = cands[0], bestScore = -1;
+  cands.forEach(id => {
+    const score = Math.max(...P.branches.filter(b => b.ids.includes(id)).map(b => b.ids.filter(known).length / b.ids.length));
+    if (score > bestScore) { bestScore = score; best = id; }
+  });
+  if (hintsUsed > 0) {
+    if (stats.petals < HINT_COST) { toast('Hints after the first cost ' + HINT_COST + ' petals. Solve puzzles to earn more.'); return; }
+    stats.petals -= HINT_COST; saveStats(); renderStats();
+  }
+  hintsUsed++; updateHintLabel(); recordPlay();
+  const need = P.truth[best];
+  delete placed[best];
+  let ti = bankNums.findIndex((n, i) => n === need && !inUse(i));
+  if (ti < 0) {
+    const holder = order.find(c => !locked[c] && placed[c] != null && bankNums[placed[c]] === need && P.truth[c] !== need);
+    ti = placed[holder]; delete placed[holder];
+  }
+  placed[best] = ti; locked[best] = true;
+  sfx('hint'); sel = nextEmpty(best); render();
+}
+
+document.getElementById('hint').addEventListener('click', () => { unlockAudio(); hint(); });
+document.getElementById('erase').addEventListener('click', () => { unlockAudio(); if (sel != null) returnCell(sel); });
+document.getElementById('reset').addEventListener('click', () => { placed = {}; locked = {}; won = false; wasSolved = []; sel = order[0]; render(); });
+function updateHintLabel() { document.getElementById('hint').textContent = hintsUsed === 0 ? 'Hint (free)' : 'Hint (' + HINT_COST + ')'; }
+document.getElementById('next').addEventListener('click', () => { progress.level[progress.diff]++; saveProgress(); loadPuzzle(); });
+document.querySelectorAll('.diffs .chip').forEach(c => c.addEventListener('click', () => { progress.diff = c.dataset.diff; saveProgress(); loadPuzzle(); }));
+
+// ---------- Drag and drop (with tap fallback) ----------
+let press = null;
+function pressStart(e, src) {
+  unlockAudio();
+  if (src.type === 'tile' && inUse(src.i)) return;
+  if (src.type === 'cell' && (src.id in given)) return;
+  press = { src, x: e.clientX, y: e.clientY, ghost: null, over: null };
+  e.preventDefault();
+}
+document.addEventListener('pointermove', e => {
+  if (!press) return;
+  if (!press.ghost && Math.hypot(e.clientX - press.x, e.clientY - press.y) > 6) {
+    const v = press.src.type === 'tile' ? bankNums[press.src.i] : value(press.src.id);
+    if (v == null || (press.src.type === 'cell' && locked[press.src.id])) return;
+    const g = document.createElement('div'); g.className = 'ghost'; g.textContent = v;
+    document.body.appendChild(g); press.ghost = g; sfx('lift');
+  }
+  if (press.ghost) {
+    press.ghost.style.left = e.clientX + 'px'; press.ghost.style.top = e.clientY + 'px';
+    const el = document.elementFromPoint(e.clientX, e.clientY);
+    const c = el && el.closest('.cell');
+    const over = c && !isFixed(Number(c.dataset.cell)) ? c : null;
+    if (over !== press.over) { press.over?.classList.remove('over'); over?.classList.add('over'); press.over = over; }
+  }
+});
+document.addEventListener('pointerup', () => {
+  if (!press) return;
+  const p = press; press = null;
+  if (p.ghost) {
+    p.ghost.remove(); p.over?.classList.remove('over');
+    const target = p.over ? Number(p.over.dataset.cell) : null;
+    if (p.src.type === 'tile') { if (target != null) dropTile(p.src.i, target); }
+    else if (target != null) moveCell(p.src.id, target);
+    else returnCell(p.src.id);
+  } else if (p.src.type === 'tile') tapTile(p.src.i); else tapCell(p.src.id);
+});
+document.addEventListener('pointercancel', () => { if (press) { press.ghost?.remove(); press.over?.classList.remove('over'); press = null; } });
+
+// ---------- Evaluate & render ----------
+function evalBranch(b) {
+  const vals = b.ids.map(value);
+  if (vals.some(v => v == null)) return null;
+  return evalOps(vals, b.ops) === b.total;
+}
+function render() {
+  let solved = 0;
+  P.branches.forEach((b, bi) => {
+    const res = evalBranch(b), hot = sel != null && b.ids.includes(sel);
+    if (res) solved++;
+    targetEls[bi].className = 'target' + (res === true ? ' ok' : res === false ? ' no' : '') + (hot && res !== true ? ' hot' : '');
+    lineEls[bi].setAttribute('class', res === true ? 'ok' : hot ? 'hot' : '');
+    opEls[bi].forEach(t => t.setAttribute('class', hot ? 'hot' : ''));
+    if (res === true && !wasSolved[bi]) { celebrate(targetEls[bi]); sfx('branch'); }
+    wasSolved[bi] = res === true;
+  });
+  P.pos.forEach((_, id) => {
+    const c = cellEls[id], v = value(id);
+    c.textContent = v ?? '';
+    c.classList.toggle('sel', sel === id);
+    c.classList.toggle('given', isFixed(id));
+    c.setAttribute('aria-label', v == null ? 'Empty cell' : 'Cell ' + v);
+  });
+  tileEls.forEach((t, i) => t.classList.toggle('used', inUse(i)));
+  document.getElementById('status').textContent = solved + ' / ' + P.branches.length + ' branches';
+  const all = solved === P.branches.length;
+  document.getElementById('winbox').hidden = !all;
+  if (all && !won) { won = true; awardSolve(); setTimeout(() => sfx('win'), 350); confetti(); }
+  if (!all) won = false;
+}
+
+// ---------- Effects ----------
+const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const sparkColors = ['#ff8a3d', '#ffd23f', '#2c9d64', '#5ab8f0', '#ff6fa8'];
+function celebrate(el) {
+  el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop');
+  if (reduce) return;
+  for (let k = 0; k < 10; k++) {
+    const s = document.createElement('span'); s.className = 'spark';
+    const a = (k / 10) * Math.PI * 2, d = 28 + Math.random() * 18;
+    s.style.left = el.style.left; s.style.top = el.style.top;
+    s.style.background = sparkColors[k % sparkColors.length];
+    s.style.setProperty('--dx', Math.cos(a) * d + 'px'); s.style.setProperty('--dy', Math.sin(a) * d + 'px');
+    board.appendChild(s); setTimeout(() => s.remove(), 750);
+  }
+}
+const sky = document.getElementById('sky'), sctx = sky.getContext('2d');
+let petalColors = ['#ffb3c7', '#ffd23f', '#b8e6a8', '#ffffff', '#ffc89a'];
+let petals = [];
+function sizeSky() { sky.width = innerWidth * devicePixelRatio; sky.height = innerHeight * devicePixelRatio; sctx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0); }
+function makePetal(fast) {
+  return { x: Math.random() * innerWidth, y: fast ? -20 - Math.random() * innerHeight * 0.5 : Math.random() * innerHeight,
+    r: 4 + Math.random() * 5, vy: fast ? 1.6 + Math.random() * 2 : 0.25 + Math.random() * 0.45, sway: Math.random() * Math.PI * 2,
+    rot: Math.random() * Math.PI, c: petalColors[Math.floor(Math.random() * petalColors.length)], temp: fast };
+}
+function drawPetal(p) {
+  sctx.save(); sctx.translate(p.x, p.y); sctx.rotate(p.rot);
+  sctx.fillStyle = p.c; sctx.globalAlpha = 0.85;
+  sctx.beginPath(); sctx.ellipse(0, 0, p.r, p.r * 0.55, 0, 0, Math.PI * 2); sctx.fill();
+  sctx.restore();
+}
+function tick() {
+  sctx.clearRect(0, 0, innerWidth, innerHeight);
+  petals.forEach(p => {
+    p.sway += 0.015; p.y += p.vy; p.x += Math.sin(p.sway) * 0.5; p.rot += 0.01;
+    if (p.y > innerHeight + 20 && !p.temp) { p.y = -20; p.x = Math.random() * innerWidth; }
+    drawPetal(p);
+  });
+  petals = petals.filter(p => !(p.temp && p.y > innerHeight + 20));
+  requestAnimationFrame(tick);
+}
+function confetti() { if (reduce) return; for (let k = 0; k < 50; k++) petals.push(makePetal(true)); }
+sizeSky(); addEventListener('resize', sizeSky);
+for (let k = 0; k < 22; k++) petals.push(makePetal(false));
+if (reduce) petals.forEach(drawPetal); else requestAnimationFrame(tick);
+
+// ---------- Sound ----------
+let actx = null, musicTimer = null, beat = 0;
+function unlockAudio() {
+  if (!actx) { try { actx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { actx = null; } }
+  if (actx && actx.state === 'suspended') actx.resume();
+}
+function tone(freq, when, dur, type = 'triangle', vol = 0.12) {
+  if (!actx) return;
+  const t = actx.currentTime + when, o = actx.createOscillator(), g = actx.createGain();
+  o.type = type; o.frequency.value = freq;
+  g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  o.connect(g).connect(actx.destination); o.start(t); o.stop(t + dur + 0.05);
+}
+function sfx(kind) {
+  if (!actx) return;
+  if (kind === 'lift') tone(520, 0, 0.08, 'sine', 0.06);
+  if (kind === 'place') { tone(660, 0, 0.12); tone(990, 0.04, 0.1, 'sine', 0.05); }
+  if (kind === 'back') tone(392, 0, 0.12, 'sine', 0.08);
+  if (kind === 'hint') [784, 988].forEach((f, k) => tone(f, k * 0.08, 0.2, 'sine', 0.09));
+  if (kind === 'branch') [523, 659, 784, 1047].forEach((f, k) => tone(f, k * 0.07, 0.25, 'triangle', 0.1));
+  if (kind === 'win') [523, 659, 784, 1047, 784, 1047, 1319].forEach((f, k) => tone(f, k * 0.11, 0.4, 'triangle', 0.11));
+}
+const scale = [523, 587, 659, 784, 880, 1047, 1175], bass = [131, 110, 87, 98];
+function musicStep() {
+  if (beat % 8 === 0) { const r = bass[(beat / 8) % 4]; tone(r, 0, 2.6, 'sine', 0.06); tone(r * 1.5, 0, 2.6, 'sine', 0.03); }
+  if (Math.random() < 0.55) tone(scale[Math.floor(Math.random() * scale.length)], 0, 0.6, 'triangle', 0.035);
+  beat++;
+}
+const musicBtn = document.getElementById('music');
+musicBtn.addEventListener('click', () => {
+  unlockAudio();
+  if (musicTimer) { clearInterval(musicTimer); musicTimer = null; musicBtn.setAttribute('aria-pressed', 'false'); }
+  else if (actx) { beat = 0; musicStep(); musicTimer = setInterval(musicStep, 340); musicBtn.setAttribute('aria-pressed', 'true'); }
+});
+
+renderStats();
+loadPuzzle();
+</script>
