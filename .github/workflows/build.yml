@@ -61,6 +61,18 @@ jobs:
             exit 1
           fi
 
+      - name: Report whether the release bundle is signed
+        run: |
+          AAB=$(ls app/build/outputs/bundle/release/*.aab)
+          if jarsigner -verify "$AAB" >/dev/null 2>&1 && jarsigner -verify -verbose -certs "$AAB" | grep -q "CN=Branches Summer Delight"; then
+            echo "::notice title=Release bundle signed::Signed with the Branches upload key. Ready for Play Console."
+          elif [ -n "$KEYSTORE_FILE" ]; then
+            echo "::error title=Release bundle not signed::The keystore secret is set but the bundle is unsigned. Check KEYSTORE_PASSWORD, KEY_ALIAS and KEY_PASSWORD."
+            exit 1
+          else
+            echo "::warning title=Release bundle unsigned::No keystore secret found, so this bundle can't go to Play."
+          fi
+
       - name: Upload debug APK
         uses: actions/upload-artifact@v4
         with:
