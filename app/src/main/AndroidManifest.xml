@@ -8,7 +8,7 @@
         android:allowBackup="false"
         android:icon="@mipmap/ic_launcher"
         android:roundIcon="@mipmap/ic_launcher"
-        android:label="Branches"
+        android:label="Branches Summer Delight"
         android:theme="@style/AppTheme">
 
         <!-- AdMob app ID. This is Google's TEST app ID: replace with your real one before release. -->
