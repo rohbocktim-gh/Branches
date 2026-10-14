@@ -11,7 +11,7 @@ android {
     compileSdk 36
 
     defaultConfig {
-        applicationId "com.branchespuzzle.game"
+        applicationId "com.branchessummerdelight.game"
         minSdk 26
         targetSdk 36
         versionCode = Integer.parseInt(System.getenv("VERSION_CODE") ?: "1")

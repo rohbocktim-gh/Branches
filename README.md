@@ -25,7 +25,7 @@ GitHub > **Actions** > latest "Build Branches" run > **Artifacts** > `branches-d
 install the `.apk` on your phone (allow installs from unknown sources when asked).
 
 ## Before publishing
-1. **App ID:** `com.branchespuzzle.game` (in `app/build.gradle`). It can never change after the first
+1. **App ID:** `com.branchessummerdelight.game` (in `app/build.gradle`). It can never change after the first
    Play upload, so change it now if you want a different one.
 2. **Signing:** Branches needs its own upload key. Add `KEYSTORE_BASE64`, `KEYSTORE_PASSWORD`,
    `KEY_ALIAS` and `KEY_PASSWORD` as repository secrets (same as Crossfigure). Without them the
