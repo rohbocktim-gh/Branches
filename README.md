@@ -13,7 +13,8 @@ Android app with banner ads and rewarded-video petals (AdMob), same setup as Cro
 | Puzzle generator + solver | `generator/gen.js` |
 | Page the app actually loads (built from the two above) | `app/src/main/assets/index.html` |
 | Android wrapper + ads | `app/src/main/java/com/branchespuzzle/game/MainActivity.java` |
-| Ad IDs (Google **test** IDs for now) | `app/src/main/res/values/strings.xml` |
+| Ad IDs: real ones for the Play release | `app/src/main/res/values/strings.xml` |
+| Ad IDs: Google test IDs for debug builds | `app/src/debug/res/values/strings.xml` |
 | Build | `.github/workflows/build.yml` (debug APK + release `.aab` on every push) |
 | Privacy policy | `docs/privacy.html` |
 
@@ -30,8 +31,8 @@ install the `.apk` on your phone (allow installs from unknown sources when asked
 2. **Signing:** Branches needs its own upload key. Add `KEYSTORE_BASE64`, `KEYSTORE_PASSWORD`,
    `KEY_ALIAS` and `KEY_PASSWORD` as repository secrets (same as Crossfigure). Without them the
    release bundle is unsigned.
-3. **Real ads:** replace the three Google test IDs in `strings.xml` with your own AdMob app ID,
-   banner unit ID and rewarded unit ID. Never use real IDs while testing.
+3. **Real ads:** done. The release bundle uses your real AdMob IDs; the debug APK always uses Google's
+   test IDs, so testing on your phone can never show real ads.
 4. **Privacy policy:** publish `docs/` with GitHub Pages (Settings > Pages > branch `main`, folder `/docs`).
 
 ## Game design

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- DEBUG BUILDS ONLY: Google's test IDs. These override the real IDs in src/main so the
+         APK you install for testing can never show real ads (tapping your own real ads can get
+         an AdMob account banned). The Play release bundle uses the real IDs from src/main. -->
+    <string name="admob_app_id" translatable="false">ca-app-pub-3940256099942544~3347511713</string>
+    <string name="banner_unit_id" translatable="false">ca-app-pub-3940256099942544/9214589741</string>
+    <string name="rewarded_unit_id" translatable="false">ca-app-pub-3940256099942544/5224354917</string>
+</resources>

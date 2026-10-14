@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- GOOGLE TEST IDS. Safe for development. Swap for your real AdMob IDs before publishing
-         (see README step "Switch to real ads"). Using real IDs while testing can get an account banned. -->
-    <string name="admob_app_id" translatable="false">ca-app-pub-3940256099942544~3347511713</string>
-    <string name="banner_unit_id" translatable="false">ca-app-pub-3940256099942544/9214589741</string>
-    <string name="rewarded_unit_id" translatable="false">ca-app-pub-3940256099942544/5224354917</string>
+    <!-- REAL AdMob IDs for Branches Summer Delight. Used by the release bundle (Play).
+         Debug builds swap in Google's test IDs from src/debug/res/values/strings.xml. -->
+    <string name="admob_app_id" translatable="false">ca-app-pub-9554390377211629~6728231814</string>
+    <string name="banner_unit_id" translatable="false">ca-app-pub-9554390377211629/7105751748</string>
+    <string name="rewarded_unit_id" translatable="false">ca-app-pub-9554390377211629/1382651774</string>
 </resources>
