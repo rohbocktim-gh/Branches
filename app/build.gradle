@@ -1,0 +1,53 @@
+plugins {
+    id 'com.android.application'
+}
+
+// Release signing comes from environment variables (set by the GitHub workflow
+// from your repository secrets). If they are absent, release builds are unsigned.
+def ksFile = System.getenv("KEYSTORE_FILE")
+
+android {
+    namespace 'com.branchespuzzle.game'
+    compileSdk 36
+
+    defaultConfig {
+        applicationId "com.branchespuzzle.game"
+        minSdk 26
+        targetSdk 36
+        versionCode (System.getenv("VERSION_CODE") ?: "1").toInteger()
+        versionName "1.0"
+    }
+
+    signingConfigs {
+        release {
+            if (ksFile) {
+                storeFile file(ksFile)
+                storePassword System.getenv("KEYSTORE_PASSWORD")
+                keyAlias System.getenv("KEY_ALIAS")
+                keyPassword System.getenv("KEY_PASSWORD")
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled true
+            shrinkResources true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            if (ksFile) {
+                signingConfig signingConfigs.release
+            }
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+dependencies {
+    implementation 'androidx.core:core:1.15.0'
+    implementation 'com.google.android.gms:play-services-ads:24.2.0'
+    implementation 'com.google.android.ump:user-messaging-platform:3.2.0'
+}

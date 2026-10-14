@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp"
+    android:viewportWidth="108" android:viewportHeight="108">
+    <!-- branches (green) -->
+    <path android:strokeColor="#8CC97E" android:strokeWidth="5" android:strokeLineCap="round"
+        android:pathData="M34,66 L54,46 L76,46 M54,46 L54,30 M34,66 L34,80" />
+    <!-- cells (white, orange outline) -->
+    <path android:fillColor="#FFFFFF" android:strokeColor="#FF8A3D" android:strokeWidth="3"
+        android:pathData="M47,39 h14 v14 h-14 z M27,59 h14 v14 h-14 z" />
+    <!-- totals (orange) -->
+    <path android:fillColor="#FF8A3D"
+        android:pathData="M76,46 m-7,0 a7,7 0 1,0 14,0 a7,7 0 1,0 -14,0 M54,30 m-6,0 a6,6 0 1,0 12,0 a6,6 0 1,0 -12,0 M34,80 m-5,0 a5,5 0 1,0 10,0 a5,5 0 1,0 -10,0" />
+</vector>

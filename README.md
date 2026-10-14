@@ -3,39 +3,40 @@
 A math puzzle laid out like a crossword, but grown as branches instead of a square grid.
 Each branch is an equation that reads toward its total; cells where branches cross count for both.
 Players fill the board from a number bank (duplicates included), by dragging or tapping.
+Android app with banner ads and rewarded-video petals (AdMob), same setup as Crossfigure.
 
-Target: Android (Google Play), Kotlin + Jetpack Compose, monetized with AdMob.
+## Where things are
 
-## What's here
+| What | File |
+|---|---|
+| Game page (layout, styles, game logic) | `web/game.html` |
+| Puzzle generator + solver | `generator/gen.js` |
+| Page the app actually loads (built from the two above) | `app/src/main/assets/index.html` |
+| Android wrapper + ads | `app/src/main/java/com/branchespuzzle/game/MainActivity.java` |
+| Ad IDs (Google **test** IDs for now) | `app/src/main/res/values/strings.xml` |
+| Build | `.github/workflows/build.yml` (debug APK + release `.aab` on every push) |
+| Privacy policy | `docs/privacy.html` |
 
-- `prototype/index.html` — the playable web prototype: generated puzzles (Easy / Medium / Hard),
-  drag-and-drop tiles, hints, days-played and streak rewards, unlockable skins, cheerful ambiance.
-  Open it in any browser. (The leaderboard only works when hosted as a Claude artifact.)
-- `generator/gen.js` — the puzzle generator and solver on its own, runnable with Node.
+After editing `web/game.html` or `generator/gen.js`, run `python3 tools/build_web.py` to rebuild the
+app's page. The GitHub build fails if you forget, so a stale page never ships.
 
-## Puzzle rules
+## Getting the APK onto your phone
+GitHub > **Actions** > latest "Build Branches" run > **Artifacts** > `branches-debug-apk`. Unzip it and
+install the `.apk` on your phone (allow installs from unknown sources when asked).
 
-- Branches point in any of 8 directions; each reads from its first cell toward its total.
-- Operators: `+`, `−`, `×`, evaluated left to right. Totals are 1–72.
-- Every generated puzzle has exactly one solution. The solver checks this; when a layout allows
-  more than one answer, the generator pre-fills cells to rule the alternatives out.
+## Before publishing
+1. **App ID:** `com.branchespuzzle.game` (in `app/build.gradle`). It can never change after the first
+   Play upload, so change it now if you want a different one.
+2. **Signing:** Branches needs its own upload key. Add `KEYSTORE_BASE64`, `KEYSTORE_PASSWORD`,
+   `KEY_ALIAS` and `KEY_PASSWORD` as repository secrets (same as Crossfigure). Without them the
+   release bundle is unsigned.
+3. **Real ads:** replace the three Google test IDs in `strings.xml` with your own AdMob app ID,
+   banner unit ID and rewarded unit ID. Never use real IDs while testing.
+4. **Privacy policy:** publish `docs/` with GitHub Pages (Settings > Pages > branch `main`, folder `/docs`).
 
-## Generator quick test
-
-```
-node -e 'const {generate}=require("./generator/gen.js"); console.log(JSON.stringify(generate("easy", 1001)))'
-```
-
-Difficulty presets: easy = 5 branches, medium = 7, hard = 9. Puzzles are seeded, so
-`generate(difficulty, seed)` always returns the same puzzle.
-
-## Rewards design (prototype)
-
-- Solve: Easy 10, Medium 20, Hard 35 petals; +5 for no hints.
-- Daily bonus on first solve: 10 × streak days, capped at 70.
-- Milestones by days played: 3 (Sunset), 7 (Night Garden), 14 (Cherry Blossom), 30 (Autumn Grove).
-- First hint per puzzle free, then 15 petals.
-
-## Next
-
-Port the generator, solver and board to Kotlin + Compose, with a GitHub Actions build.
+## Game design
+- Difficulties: Easy 5 branches, Medium 7, Hard 9. Every puzzle has exactly one solution.
+- Rewards: solve = 10/20/35 petals (+5 no hints); daily bonus 10 × streak (max 70);
+  skins at 3, 7, 14 and 30 days played; first hint free, then 15 petals; ad = +30 petals.
+- The leaderboard only appears in the Claude-hosted web version. On Android it is hidden
+  (Google Play Games Services is the eventual replacement).

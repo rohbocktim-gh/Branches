@@ -1,3 +1,4 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>*,*::before,*::after{box-sizing:border-box}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style></head><body>
 <title>Branches Sketch</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Nunito:wght@400;600;700&display=swap">
@@ -33,6 +34,8 @@
 .stats { display: flex; gap: 8px; flex-wrap: wrap; }
 .stat { display: inline-flex; align-items: center; gap: 6px; font-family: var(--display); font-weight: 500; font-size: 0.92rem; padding: 5px 11px; border-radius: 999px; background: var(--target-bg); color: var(--ink); font-variant-numeric: tabular-nums; }
 .stat svg { width: 16px; height: 16px; flex: none; }
+.stat-btn { border: 2px solid var(--accent); cursor: pointer; }
+.stat-btn:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
 .ico-petal { fill: #ff8fb1; }
 .ico-flame { fill: #ff8a3d; }
 .ico-sun { fill: #f5b700; }
@@ -147,7 +150,7 @@ h1 span { color: var(--accent); }
     <h1>Branch<span>es</span></h1>
     <div class="hdr-right">
       <button class="chip" id="rewardsBtn" type="button">Rewards</button>
-      <button class="chip" id="leadersBtn" type="button">Leaders</button>
+      <button class="chip" id="leadersBtn" type="button" hidden>Leaders</button>
       <button class="chip" id="music" type="button" aria-pressed="false" aria-label="Music">♪</button>
     </div>
   </header>
@@ -155,6 +158,7 @@ h1 span { color: var(--accent); }
     <span class="stat" title="Days played"><svg class="ico-sun"><use href="#i-sun"/></svg><span id="sDays">0 days</span></span>
     <span class="stat" title="Current streak"><svg class="ico-flame"><use href="#i-flame"/></svg><span id="sStreak">0 streak</span></span>
     <span class="stat" title="Petals"><svg class="ico-petal"><use href="#i-petal"/></svg><span id="sPetals">0</span></span>
+    <button class="stat stat-btn" id="adPetals" type="button" hidden>▶ Watch ad +30</button>
   </div>
   <div class="levelbar">
     <div class="diffs" role="group" aria-label="Difficulty">
@@ -410,12 +414,31 @@ document.getElementById('rewardsBtn').addEventListener('click', () => { renderPa
 document.getElementById('panelClose').addEventListener('click', () => document.getElementById('panelBack').hidden = true);
 document.getElementById('panelBack').addEventListener('click', e => { if (e.target.id === 'panelBack') e.currentTarget.hidden = true; });
 
+// ---------- Rewarded ads (only inside the Android app) ----------
+const AD_REWARD = 30;
+const hasAds = !!(window.Android && typeof window.Android.showRewarded === 'function');
+let adPending = false;
+if (hasAds) document.getElementById('adPetals').hidden = false;
+document.getElementById('adPetals').addEventListener('click', () => {
+  if (!hasAds || adPending) return;
+  adPending = true; window.Android.showRewarded();
+});
+window.onReward = () => {
+  adPending = false; stats.petals += AD_REWARD; saveStats(); renderStats(); pushScore();
+  toast('+' + AD_REWARD + ' petals. Thanks for watching!'); sfx('hint');
+};
+window.onRewardDismissed = () => { adPending = false; toast('Watch the whole ad to earn petals.'); };
+window.onRewardUnavailable = () => { adPending = false; toast('No ad is ready yet. Try again in a minute.'); };
+
 // ---------- Leaderboard (shared across everyone who opens the page) ----------
 const LB_LABEL = { petals: 'petals', days: 'days', best: 'day streak', solved: 'solved' };
 let lb = { db: null, user: null, myId: null, canWrite: null, rows: [], sort: 'petals', writing: false, dirty: false, ready: false };
+const hasClaude = !!(window.claude && typeof window.claude.use === 'function');
+if (hasClaude) document.getElementById('leadersBtn').hidden = false;
 (async () => {
+  if (!hasClaude) return;
   try {
-    const [db, user] = await Promise.all([claude.use('db'), claude.use('user')]);
+    const [db, user] = await Promise.all([window.claude.use('db'), window.claude.use('user')]);
     if (!db) { lb.ready = true; renderLeaderboard(); return; }
     lb.db = db; lb.user = user;
     lb.myId = user ? await user.id() : null;
@@ -576,7 +599,7 @@ function hint() {
     if (score > bestScore) { bestScore = score; best = id; }
   });
   if (hintsUsed > 0) {
-    if (stats.petals < HINT_COST) { toast('Hints after the first cost ' + HINT_COST + ' petals. Solve puzzles to earn more.'); return; }
+    if (stats.petals < HINT_COST) { toast('Hints after the first cost ' + HINT_COST + ' petals. Solve puzzles' + (hasAds ? ' or watch an ad' : '') + ' to earn more.'); return; }
     stats.petals -= HINT_COST; saveStats(); renderStats();
   }
   hintsUsed++; updateHintLabel(); recordPlay();
@@ -751,3 +774,5 @@ musicBtn.addEventListener('click', () => {
 renderStats();
 loadPuzzle();
 </script>
+
+</body></html>
