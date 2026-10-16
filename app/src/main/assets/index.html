@@ -131,6 +131,8 @@ h1 span { color: var(--accent); }
 .ghost { position: fixed; z-index: 10; width: 52px; height: 52px; display: grid; place-items: center; border-radius: 16px; background: var(--accent); color: var(--onaccent);
   font-family: var(--display); font-weight: 600; font-size: 1.5rem; pointer-events: none; transform: translate(-50%, -60%) rotate(-6deg); box-shadow: 0 8px 18px rgba(43,58,85,.25); }
 .actions { display: flex; gap: 8px; }
+.contact { margin: 2px 0 0; text-align: center; font-size: 0.9rem; color: var(--muted); }
+.contact a { color: var(--ink); font-weight: 600; overflow-wrap: anywhere; }
 .actions button { flex: 1; font-family: var(--display); font-size: 1rem; font-weight: 500; padding-block: 12px; border-radius: 14px; border: 2px solid var(--branch); background: var(--cell); color: var(--ink); cursor: pointer; }
 .actions #hint { background: var(--accent); border-color: var(--accent); color: var(--onaccent); }
 .winbox { display: flex; flex-direction: column; align-items: center; gap: 10px; }
@@ -252,6 +254,7 @@ h1 span { color: var(--accent); }
     <button id="erase" type="button">Return</button>
     <button id="reset" type="button">Start over</button>
   </div>
+  <p class="contact">Questions or found a bug? Email <a href="mailto:timr@rohbocksrule.com?subject=Branches%20Summer%20Delight">timr@rohbocksrule.com</a></p>
 </div>
 
 <div class="panel-back" id="panelBack" hidden>
