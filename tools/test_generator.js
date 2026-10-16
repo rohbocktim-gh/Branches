@@ -15,5 +15,15 @@ for (const d of Object.keys(CFG)) {
     if (new Set(pts).size !== pts.length) fail('overlapping cells');
   }
 }
+// Easy puzzles 1-5 are the starter ramp: fewer branches and only a few blanks.
+const { STARTER_COUNT } = require('../generator/gen.js');
+for (let n = 1; n <= STARTER_COUNT; n++) {
+  for (let s = 1; s <= 30; s++) {
+    const p = generate('easy', s * 17 + n, n);
+    if (!p) { failures++; console.error(`starter ${n} seed ${s}: no puzzle`); continue; }
+    for (const b of p.branches) if (evalOps(b.ids.map(i => p.truth[i]), b.ops) !== b.total) { failures++; console.error(`starter ${n} seed ${s}: branch does not add up`); }
+    if (p.pos.length - Object.keys(p.given).length > 6) { failures++; console.error(`starter ${n} seed ${s}: too many blanks`); }
+  }
+}
 if (failures) { console.error(`${failures} problem(s)`); process.exit(1); }
-console.log('generator: 180 puzzles OK');
+console.log('generator: 180 puzzles + ' + STARTER_COUNT * 30 + ' starter puzzles OK');
