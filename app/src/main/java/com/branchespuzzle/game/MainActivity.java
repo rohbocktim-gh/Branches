@@ -2,6 +2,9 @@ package com.branchespuzzle.game;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
+import android.content.ActivityNotFoundException;
+import android.content.Intent;
+import android.net.Uri;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.util.DisplayMetrics;
@@ -10,6 +13,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.webkit.JavascriptInterface;
 import android.webkit.WebChromeClient;
+import android.webkit.WebResourceRequest;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
@@ -80,7 +84,18 @@ public class MainActivity extends Activity {
         s.setAllowFileAccess(true);            // needed to read the bundled game page
         s.setAllowContentAccess(false);
         s.setMediaPlaybackRequiresUserGesture(true);
-        web.setWebViewClient(new WebViewClient());
+        // The game page is local; anything else (the contact email link, web links) opens in the phone's own apps.
+        web.setWebViewClient(new WebViewClient() {
+            @Override public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
+                Uri uri = request.getUrl();
+                if ("file".equals(uri.getScheme())) return false;
+                Intent intent = "mailto".equals(uri.getScheme())
+                        ? new Intent(Intent.ACTION_SENDTO, uri)
+                        : new Intent(Intent.ACTION_VIEW, uri);
+                try { startActivity(intent); } catch (ActivityNotFoundException e) { Log.w(TAG, "No app for " + uri.getScheme()); }
+                return true;
+            }
+        });
         web.setWebChromeClient(new WebChromeClient());
         web.addJavascriptInterface(new Bridge(), "Android");
         web.loadUrl("file:///android_asset/index.html");
