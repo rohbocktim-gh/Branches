@@ -1,7 +1,24 @@
 // GEN START
 function mulberry32(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
 const DIRS = [[1,0],[0,1],[1,1],[1,-1],[-1,0],[0,-1],[-1,-1],[-1,1]];
-const CFG = { easy: { branches: 5, extra: 2 }, medium: { branches: 7, extra: 1 }, hard: { branches: 9, extra: 0 } };
+// plus/minus are the chances of + and − (the rest is ×); maxNum caps the digits; maxTotal caps branch totals.
+const MIX = { plus: 0.45, minus: 0.30, maxNum: 9, maxTotal: 72, minFree: 4 };
+const CFG = {
+  easy:   { branches: 5, extra: 2, plus: 0.6, minus: 0.4, maxNum: 9, maxTotal: 30, minFree: 4 },  // no ×
+  medium: Object.assign({ branches: 7, extra: 1 }, MIX),
+  hard:   Object.assign({ branches: 9, extra: 0 }, MIX),
+};
+// Easy puzzles 1-5 are a gentle on-ramp: few branches, small numbers, + only at first, and only
+// a handful of blanks (free = how many cells the player fills).
+const STARTER = [
+  { branches: 2, plus: 1,   minus: 0,   maxNum: 5, maxTotal: 12, free: 3 },
+  { branches: 3, plus: 1,   minus: 0,   maxNum: 5, maxTotal: 15, free: 3 },
+  { branches: 3, plus: 1,   minus: 0,   maxNum: 6, maxTotal: 18, free: 4 },
+  { branches: 4, plus: 0.7, minus: 0.3, maxNum: 9, maxTotal: 20, free: 4 },
+  { branches: 4, plus: 0.6, minus: 0.4, maxNum: 9, maxTotal: 25, free: 5 },
+];
+const STARTER_COUNT = STARTER.length;
+function config(diff, level) { return diff === 'easy' && level >= 1 && level <= STARTER.length ? STARTER[level - 1] : CFG[diff]; }
 const LIM = 3;
 function evalOps(vals, ops) { let r = vals[0]; ops.forEach((op, i) => { const v = vals[i + 1]; r = op === '+' ? r + v : op === '−' ? r - v : r * v; }); return r; }
 
@@ -31,9 +48,9 @@ function solve(n, br, given, truth, limit, nodeLimit) {
   return { count, sols, aborted };
 }
 
-function generate(diff, seed) {
+function generate(diff, seed, level) {
   const rnd = mulberry32(seed * 7919 + 13), ri = n => Math.floor(rnd() * n);
-  const cfg = CFG[diff];
+  const cfg = config(diff, level);
   for (let attempt = 0; attempt < 400; attempt++) {
     const pos = [], at = new Map(), occ = new Map(), br = [];
     const key = (x, y) => x + ',' + y; // doubled coordinates
@@ -58,14 +75,14 @@ function generate(diff, seed) {
       tryBranch(j[0], j[1], DIRS[ri(8)], L, ri(L), false);
     }
     if (br.length < cfg.branches) continue;
-    const truth = pos.map(() => 1 + ri(9));
+    const truth = pos.map(() => 1 + ri(cfg.maxNum));
     let ok = true;
     for (const b of br) {
       let done = false;
       for (let t = 0; t < 30 && !done; t++) {
-        const ops = b.ids.slice(1).map(() => { const q = rnd(); return q < 0.45 ? '+' : q < 0.75 ? '−' : '×'; });
+        const ops = b.ids.slice(1).map(() => { const q = rnd(); return q < cfg.plus ? '+' : q < cfg.plus + cfg.minus ? '−' : '×'; });
         const tot = evalOps(b.ids.map(i => truth[i]), ops);
-        if (tot >= 1 && tot <= 72) { b.ops = ops; b.total = tot; done = true; }
+        if (tot >= 1 && tot <= cfg.maxTotal) { b.ops = ops; b.total = tot; done = true; }
       }
       if (!done) { ok = false; break; }
     }
@@ -83,11 +100,16 @@ function generate(diff, seed) {
     }
     if (!unique) continue;
     const free = pos.map((_, i) => i).filter(i => !(i in given));
-    for (let e = 0; e < cfg.extra && free.length > 4; e++) { const c = free.splice(ri(free.length), 1)[0]; given[c] = truth[c]; }
-    if (free.length < 4) continue;
+    if (cfg.free) {
+      if (free.length < cfg.free) continue;
+      while (free.length > cfg.free) { const c = free.splice(ri(free.length), 1)[0]; given[c] = truth[c]; }
+    } else {
+      for (let e = 0; e < cfg.extra && free.length > cfg.minFree; e++) { const c = free.splice(ri(free.length), 1)[0]; given[c] = truth[c]; }
+      if (free.length < cfg.minFree) continue;
+    }
     return { pos, branches: br, truth, given };
   }
   return null;
 }
 // GEN END
-if (typeof module !== 'undefined') module.exports = { generate };
+if (typeof module !== 'undefined') module.exports = { generate, STARTER_COUNT };
