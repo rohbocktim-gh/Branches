@@ -63,6 +63,13 @@
 .ms.done { border: 2px solid var(--good); }
 .bar { height: 6px; border-radius: 99px; background: var(--used); overflow: hidden; margin-top: 4px; }
 .bar i { display: block; height: 100%; background: var(--accent); }
+.dz { display: flex; flex-direction: column; gap: 8px; padding-top: 14px; border-top: 2px dashed var(--used); }
+.dz-note { margin: 0; font-size: 0.9rem; color: var(--muted); }
+.dz-btn { align-self: flex-start; font-family: var(--display); font-weight: 500; font-size: 0.95rem; padding: 8px 16px; border-radius: 999px; border: 2px solid var(--bad); background: var(--cell); color: var(--bad); cursor: pointer; }
+.dz-btn[hidden], .dz-confirm[hidden] { display: none; }
+.dz-yes { background: var(--bad); color: #fff; }
+.dz-confirm { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.dz-btn:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
 .skins { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 8px; }
 .skin { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; padding: 8px; border-radius: 14px; border: 2px solid transparent; background: var(--cell); color: var(--ink); font-family: var(--display); font-weight: 500; cursor: pointer; text-align: left; }
 .skin[aria-pressed="true"] { border-color: var(--accent); }
@@ -264,6 +271,15 @@ h1 span { color: var(--accent); }
     <ul class="milestones" id="milestones"></ul>
     <h3>Garden skins</h3>
     <div class="skins" id="skins"></div>
+    <div class="dz">
+      <h3>Start fresh</h3>
+      <p class="dz-note">Erases days played, streaks, petals, skins and puzzle levels on this device. This can't be undone.</p>
+      <button class="dz-btn" id="resetAll" type="button">Reset game</button>
+      <div class="dz-confirm" id="resetConfirm" hidden>
+        <button class="dz-btn dz-yes" id="resetYes" type="button">Yes, erase everything</button>
+        <button class="chip" id="resetNo" type="button">Cancel</button>
+      </div>
+    </div>
   </div>
 </div>
 <div class="panel-back" id="lbBack" hidden>
@@ -391,6 +407,27 @@ function renderPanel() {
 }
 document.getElementById('rewardsBtn').addEventListener('click', () => { renderPanel(); document.getElementById('panelBack').hidden = false; });
 document.getElementById('panelClose').addEventListener('click', () => document.getElementById('panelBack').hidden = true);
+
+// Reset game: wipe all saved progress back to a first launch. Two taps, so it can't happen by accident.
+const showResetConfirm = on => {
+  document.getElementById('resetAll').hidden = on;
+  document.getElementById('resetConfirm').hidden = !on;
+};
+document.getElementById('rewardsBtn').addEventListener('click', () => showResetConfirm(false));
+document.getElementById('resetAll').addEventListener('click', () => { showResetConfirm(true); document.getElementById('resetNo').focus(); });
+document.getElementById('resetNo').addEventListener('click', () => showResetConfirm(false));
+document.getElementById('resetYes').addEventListener('click', () => {
+  try { localStorage.removeItem('branches-progress'); localStorage.removeItem('branches-stats'); } catch (e) {}
+  progress = { diff: 'easy', level: { easy: 1, medium: 1, hard: 1 } };
+  stats = { days: 0, streak: 0, best: 0, lastDay: null, bonusDay: null, petals: 40, solved: 0, skin: 'meadow', unlocked: ['meadow'], done: { easy: 0, medium: 0, hard: 0 } };
+  saveProgress(); saveStats();
+  if (lb.db && lb.myId && lb.canWrite !== false) { try { Promise.resolve(lb.db.doc('board/' + lb.myId).delete()).catch(() => {}); } catch (e) {} }
+  showResetConfirm(false);
+  document.getElementById('panelBack').hidden = true;
+  document.getElementById('winbox').hidden = true;
+  renderStats(); loadPuzzle();
+  toast('Game reset. Fresh start!');
+});
 document.getElementById('panelBack').addEventListener('click', e => { if (e.target.id === 'panelBack') e.currentTarget.hidden = true; });
 
 // ---------- Rewarded ads (only inside the Android app) ----------
