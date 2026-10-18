@@ -774,8 +774,8 @@ function sfx(kind) {
 }
 const scale = [523, 587, 659, 784, 880, 1047, 1175], bass = [131, 110, 87, 98];
 function musicStep() {
-  if (beat % 8 === 0) { const r = bass[(beat / 8) % 4]; tone(r, 0, 2.6, 'sine', 0.06); tone(r * 1.5, 0, 2.6, 'sine', 0.03); }
-  if (Math.random() < 0.55) tone(scale[Math.floor(Math.random() * scale.length)], 0, 0.6, 'triangle', 0.035);
+  if (beat % 8 === 0) { const r = bass[(beat / 8) % 4]; tone(r, 0, 2.6, 'sine', 0.15); tone(r * 1.5, 0, 2.6, 'sine', 0.075); }
+  if (Math.random() < 0.55) tone(scale[Math.floor(Math.random() * scale.length)], 0, 0.6, 'triangle', 0.09);
   beat++;
 }
 const musicBtn = document.getElementById('music');
