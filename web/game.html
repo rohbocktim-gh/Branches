@@ -257,7 +257,6 @@ h1 span { color: var(--accent); }
   <div class="bank" id="bank"></div>
   <div class="actions">
     <button id="hint" type="button">Hint (free)</button>
-    <button id="erase" type="button">Return</button>
     <button id="reset" type="button">Start over</button>
   </div>
   <p class="contact">Questions or found a bug? Email <a href="mailto:timr@rohbocksrule.com?subject=Branches%20Summer%20Delight">timr@rohbocksrule.com</a></p>
@@ -631,7 +630,6 @@ function hint() {
 }
 
 document.getElementById('hint').addEventListener('click', () => { unlockAudio(); hint(); });
-document.getElementById('erase').addEventListener('click', () => { unlockAudio(); if (sel != null) returnCell(sel); });
 document.getElementById('reset').addEventListener('click', () => { placed = {}; locked = {}; won = false; wasSolved = []; sel = order[0]; render(); });
 function updateHintLabel() { document.getElementById('hint').textContent = hintsUsed === 0 || isStarter() ? 'Hint (free)' : 'Hint (' + HINT_COST + ')'; }
 document.getElementById('next').addEventListener('click', () => { progress.level[progress.diff]++; saveProgress(); loadPuzzle(); });
