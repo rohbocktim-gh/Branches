@@ -4,7 +4,7 @@ name: Build Branches (iOS)
 # screenshots to the ios-screenshots branch. Runs when the game page or the iOS app changes.
 on:
   push:
-    branches: [main]
+    branches: [main, ios]
     paths:
       - 'ios/**'
       - 'app/src/main/assets/index.html'
