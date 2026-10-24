@@ -1,0 +1,61 @@
+# Xcode project for the iOS app, generated with XcodeGen:
+#   brew install xcodegen && cd ios && xcodegen
+# The GitHub workflow does this on every build, so the .xcodeproj isn't kept in git.
+name: Branches
+options:
+  bundleIdPrefix: com.branchessummerdelight
+  deploymentTarget:
+    iOS: "15.0"
+packages:
+  GoogleMobileAds:
+    url: https://github.com/googleads/swift-package-manager-google-mobile-ads
+    from: 12.0.0
+  GoogleUMP:
+    url: https://github.com/googleads/swift-package-manager-google-user-messaging-platform
+    from: 3.0.0
+settings:
+  base:
+    MARKETING_VERSION: "1.1"
+    CURRENT_PROJECT_VERSION: "1"
+targets:
+  Branches:
+    type: application
+    platform: iOS
+    sources:
+      - path: Branches
+      # The same game page the Android app loads.
+      - path: ../app/src/main/assets/index.html
+        buildPhase: resources
+    dependencies:
+      - package: GoogleMobileAds
+      - package: GoogleUMP
+        product: GoogleUserMessagingPlatform
+    info:
+      path: Branches/Info.plist
+      properties:
+        CFBundleDisplayName: Branches
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        UILaunchScreen: {}
+        ITSAppUsesNonExemptEncryption: false
+        UIRequiresFullScreen: true
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+        UISupportedInterfaceOrientations~ipad:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationPortraitUpsideDown
+        # AdMob. These are Google's iOS TEST IDs until a Branches iOS app is added in AdMob.
+        GADApplicationIdentifier: ca-app-pub-3940256099942544~1458002511
+        BranchesBannerUnitID: ca-app-pub-3940256099942544/2435281174
+        BranchesRewardedUnitID: ca-app-pub-3940256099942544/1712485313
+        SKAdNetworkItems:
+          - SKAdNetworkIdentifier: cstr6suwn9.skadnetwork
+        LSApplicationQueriesSchemes:
+          - mailto
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.branchessummerdelight.game
+        PRODUCT_NAME: Branches
+        TARGETED_DEVICE_FAMILY: "1,2"
+        SWIFT_VERSION: "5.0"
+        OTHER_LDFLAGS: ["$(inherited)", "-ObjC"]
