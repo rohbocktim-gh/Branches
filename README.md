@@ -41,3 +41,10 @@ install the `.apk` on your phone (allow installs from unknown sources when asked
   skins at 3, 7, 14 and 30 days played; first hint free, then 15 petals; ad = +30 petals.
 - The leaderboard only appears in the Claude-hosted web version. On Android it is hidden
   (Google Play Games Services is the eventual replacement).
+
+## iOS (iPhone and iPad)
+`ios/` holds a small Swift app that loads the same `app/src/main/assets/index.html` and gives the page
+the same `Android.showRewarded()` call, so the game needs no changes. AdMob banner and rewarded ads use
+Google's iOS **test** IDs (in `ios/project.yml`) until a Branches iOS app is added in AdMob.
+The "Build Branches (iOS)" workflow builds it for the simulator and saves screenshots to the
+`ios-screenshots` branch. TestFlight uploads come once the Apple Developer account is set up.
